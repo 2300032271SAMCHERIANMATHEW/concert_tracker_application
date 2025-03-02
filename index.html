@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concert Finder</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        } 
+        body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100vh;
+    padding: 20px;
+    margin-top: 10px; /* Add a small margin to the body */
+}
+
+#search-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 1;
+    background-color: white;
+    z-index: 10;
+    padding: 10px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+         
+
+        #locationSearch {
+            padding: 10px;
+            font-size: 16px;
+            margin-right: 10px;
+            width: 200px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #content {
+            display: flex;
+            flex-direction: row; /* Align side by side */
+            width: 100%;
+            margin-top: 20px;
+        }
+        #concerts {
+    flex: 0 0 300px; /* Fixed width for concerts list */
+    height: 80vh; /* Adjusted height */
+    max-height: 80vh; /* Set a max height to prevent overflow */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-right: 20px;
+}
+
+
+        #concertList {
+            list-style: none;
+            padding: 4;
+        }
+        #concertList li {
+    background-color: #f9f9f9; /* Light background color */
+    border: 1px solid #ccc; /* Border around the box */
+    border-radius: 8px; /* Rounded corners */
+    padding: 15px; /* Spacing inside the box */
+    margin-bottom: 10px; /* Spacing between concert boxes */
+    font-size: 16px; /* Font size for readability */
+    line-height: 1.5; /* Increase line height for more spacious text */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow for better separation */
+}
+
+#concertList li:hover {
+    background-color: #f0f0f0; /* Change background color on hover */
+    cursor: pointer; /* Pointer cursor for interactivity */
+}
+        #map {
+            flex: 1; /* Map takes the remaining space */
+            height: 80vh; /* Full height */
+            width: 100vw; /* Full width */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 968px) {
+            #content {
+                flex-direction: column; /* Stack vertically on small screens */
+            }
+
+            #concerts, #map {
+                flex: 1 1 100%; /* Take up full width */
+                height: 50vh; /* 50% of viewport height */
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Find Nearby Concerts</h1>
+
+    <!-- Search Bar and Button -->
+    <div id="search-container">
+        <input type="text" id="locationSearch" placeholder="Enter location">
+        <button onclick="searchLocation()">Search</button>
+    </div>
+    
+    <div id="content">
+        <!-- Concerts List -->
+        <div id="concerts">
+            <h2>Concerts:</h2>
+            <ul id="concertList"></ul>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([19.0760, 72.8777], 13); // Default to Mumbai coordinates
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        
+        function searchLocation() {
+            const query = document.getElementById('locationSearch').value;
+            fetch(`http://localhost:5000/concerts?city=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const concertList = document.getElementById('concertList');
+                    concertList.innerHTML = '';
+                    if (data.length === 0 || data.message) {
+                        concertList.innerHTML = '<li>No concerts found</li>';
+                        return;
+                    }
+                    data.forEach(concert => {
+                        const li = document.createElement('li');
+                        li.textContent = `${concert.name} - ${concert.date} at ${concert.venue}`;
+                        concertList.appendChild(li);
+                        L.marker([concert.lat, concert.lon]).addTo(map)
+                            .bindPopup(`${concert.name} - ${concert.date}<br>${concert.venue}`).openPopup();
+                    });
+                })
+                .catch(error => console.error('Error fetching concerts:', error));
+        }
+    </script>
+</body>
+</html>
